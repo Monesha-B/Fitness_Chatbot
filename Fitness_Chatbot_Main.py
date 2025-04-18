@@ -2,6 +2,11 @@ import os
 import openai
 from dotenv import load_dotenv
 
+import os
+os.system("pip install openai")
+import openai
+
+
 # Load environment variables from .env file (useful for local dev)
 load_dotenv()
 
