@@ -1,0 +1,25 @@
+[
+  {
+    "date": "2025-04-19",
+    "range": "weekly",
+    "plan": {
+      "meals": {
+        "Monday": {
+          "Calories": 1800,
+          "Macros": "30% carbs, 40% protein, 30% fat",
+          "Meals": [
+            "Breakfast: Vegan protein smoothie",
+            "Lunch: Quinoa bowl with tofu",
+            "Dinner: Zucchini noodles with lentils"
+          ]
+        }
+      },
+      "workout": {
+        "Monday": {
+          "Swimming": "30 min, 210 kcal",
+          "Yoga": "30 min, 75 kcal"
+        }
+      }
+    }
+  }
+]

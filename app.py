@@ -1,72 +1,91 @@
 import streamlit as st
+import json
+import os
+from datetime import datetime
 from Fitness_Chatbot_Main import chat_with_gpt
 
-# Set page config
-st.set_page_config(page_title="CoverFitness Chatbot", page_icon="💪")
-st.title("💬 CoverFitness AI Chatbot")
+st.set_page_config(page_title="Interactive Fitness Dashboard", page_icon="💪")
+st.title("💬 CoverFitness AI Chatbot + Planner")
 
-# Set dark mode theme
-def set_dark_theme():
-    st.markdown(
-        """
-        <style>
-        .stApp {
-            background-color: #121212;
-            color: #e0e0e0;
-        }
-        .css-1cpxqw2, .css-ffhzg2, .css-1d391kg {
-            background-color: #1f1f1f !important;
-        }
-        </style>
-        """,
-        unsafe_allow_html=True
-    )
-set_dark_theme()
+# Collect basic user info
+st.sidebar.header("👤 Your Info")
+age = st.sidebar.number_input("Age", min_value=12, max_value=100, step=1)
+height = st.sidebar.number_input("Height (cm)", min_value=100, max_value=250)
+weight = st.sidebar.number_input("Weight (kg)", min_value=30, max_value=200)
+gender = st.sidebar.selectbox("Gender", ["Male", "Female", "Other"])
+goal = st.sidebar.selectbox("Fitness Goal", ["Lose Fat", "Build Muscle", "Maintain"])
 
-# Set background image
-def set_background_image():
-    st.markdown(
-        """
-        <style>
-        .stApp {
-            background-image: url("https://images.unsplash.com/photo-1605296867304-46d5465a13f1?auto=format&fit=crop&w=1350&q=80");
-            background-size: cover;
-            background-attachment: fixed;
-        }
-        </style>
-        """,
-        unsafe_allow_html=True
-    )
-set_background_image()
-
-# Add FitBuddy logo
-st.image("https://img.icons8.com/external-flat-juicy-fish/200/000000/exercise-flat-juicy-fish.png", width=100)
-
-# Sidebar with fitness tips
-with st.sidebar:
-    st.markdown("### 💡 FitBuddy Tips")
-    st.markdown("- Stay hydrated 🥤")
-    st.markdown("- Consistency beats intensity 💯")
-    st.markdown("- Don't skip rest days 💤")
-    st.markdown("---")
-    st.markdown("👤 Made by Monesha")
-
-# Initialize chat history in session state
+# Load chat history if it exists
 if "chat_history" not in st.session_state:
-    st.session_state.chat_history = []
+    if os.path.exists("chat_history.json"):
+        with open("chat_history.json", "r") as f:
+            st.session_state.chat_history = json.load(f)
+    else:
+        st.session_state.chat_history = []
 
-# User input
-user_input = st.text_input("Ask me anything about fitness:")
+# Generate plan
+if all([age, height, weight]):
+    if st.sidebar.button("Generate Fitness Plan"):
+        user_profile = {
+            "age": age, "height": height, "weight": weight,
+            "gender": gender, "goal": goal
+        }
+        intro = f"User profile: {user_profile}. Suggest a weekly meal and workout plan."
+        response, st.session_state.chat_history = chat_with_gpt(intro, [])
+        st.session_state.generated_plan = response
+
+# Show generated plan
+if "generated_plan" in st.session_state:
+    st.markdown("### 🧾 Suggested Plan")
+    st.write(st.session_state.generated_plan)
+
+# Meals Table
+st.markdown("### 🍽️ Edit Your Meal Plan")
+default_meals = {
+    "Day": ["Monday", "Tuesday", "Wednesday"],
+    "Breakfast": ["Smoothie", "Oats", "Tofu Scramble"],
+    "Lunch": ["Quinoa Bowl", "Lentil Soup", "Chickpea Salad"],
+    "Dinner": ["Zucchini Noodles", "Veggie Stir-fry", "Stuffed Peppers"]
+}
+meal_df = st.data_editor(default_meals, num_rows="dynamic", key="meals_editor")
+
+# Workouts Table
+st.markdown("### 🏋️ Edit Your Workout Plan")
+default_workouts = {
+    "Day": ["Monday", "Tuesday", "Wednesday"],
+    "Workout 1": ["Swimming (30m)", "HIIT (20m)", "Jogging (30m)"],
+    "Workout 2": ["Yoga (30m)", "Core (20m)", "Stretching (15m)"]
+}
+workout_df = st.data_editor(default_workouts, num_rows="dynamic", key="workout_editor")
+
+# Save plans to file
+if st.button("💾 Save Plans"):
+    plans = {
+        "user_info": {"age": age, "height": height, "weight": weight, "goal": goal},
+        "meals": meal_df,
+        "workouts": workout_df
+    }
+    with open("saved_plan.json", "w") as f:
+        json.dump(plans, f, indent=2)
+    st.success("Plans saved successfully!")
+
+# Chatbot Section
+st.markdown("## 🤖 Chat With FitBuddy")
+user_input = st.text_input("Ask something about your fitness, meals, or workouts:")
 
 if user_input:
     reply, st.session_state.chat_history = chat_with_gpt(user_input, st.session_state.chat_history)
-    st.write("🤖:", reply)
+    st.markdown(f"**🤖 FitBuddy:** {reply}")
 
 # Display chat history
 if st.session_state.chat_history:
-    st.markdown("### Chat History")
+    st.markdown("### 💭 Chat History")
     for entry in st.session_state.chat_history:
-        if entry["role"] == "user":
-            st.markdown(f"**You:** {entry['content']}")
-        elif entry["role"] == "assistant":
-            st.markdown(f"**AI:** {entry['content']}")
+        role = "🧑 You" if entry["role"] == "user" else "🤖 FitBuddy"
+        st.markdown(f"**{role}:** {entry['content']}")
+
+# Save chat history button
+if st.button("💾 Save Chat History"):
+    with open("chat_history.json", "w") as f:
+        json.dump(st.session_state.chat_history, f, indent=2)
+    st.success("Chat history saved to chat_history.json!")
